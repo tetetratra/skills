@@ -1,5 +1,5 @@
 ---
-description: 実装した機能の動作確認の計画と検証実行を行い、結果を記録する。
+description: 動作確認をするスキル。実装した機能の動作確認の計画と検証実行を行い、結果を記録する。
 name: verify-implementation
 ---
 

@@ -1,5 +1,5 @@
 ---
-description: タスクのビジネス的背景・目的を体系的に定義する
+description: 背景・目的の整理をするスキル。タスクのビジネス的背景・目的を体系的に定義する
 name: clarify-background
 ---
 

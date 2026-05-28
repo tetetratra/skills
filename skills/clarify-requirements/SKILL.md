@@ -1,5 +1,5 @@
 ---
-description: タスクの要求定義または要件定義を行う。
+description: 要求定義または要件定義をするスキル。タスクの要求定義または要件定義を行う。
 name: clarify-requirements
 ---
 

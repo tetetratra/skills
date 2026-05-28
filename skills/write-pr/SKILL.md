@@ -1,5 +1,5 @@
 ---
-description: PRの背景・目的、変更内容、動作確認を整理してPRを作成・更新する。
+description: PR作成をするスキル。PRの背景・目的、変更内容、動作確認を整理してPRを作成・更新する。
 name: write-pr
 ---
 
