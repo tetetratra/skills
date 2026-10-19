@@ -1,3 +1,10 @@
 tmp
 skills/.system
 
+# claude.ai のアカウント・組織のスキル(anthropic-skills:* など)を Claude Code が同期した先
+skills/synced/
+# 同期済みスキルの更新・削除時に、古い版が退避される場所
+skills/.trash/
+# 組織で共有されているスキル(ernie-shared:grill-me など)が同期されたもの
+skills/ernie-shared:*/
+
