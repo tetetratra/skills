@@ -1,5 +1,5 @@
 ---
-description: Feature flag導入時の実装・テストパターンのベストプラクティス
+description: Feature flag導入時の実装・テストパターンのベストプラクティス。ユーザーから明示的に使用を指示された場合、または他のスキルの指示に基づいて使用が必要と判断された場合にのみ使用する。
 name: feature-flag-implementation
 ---
 
