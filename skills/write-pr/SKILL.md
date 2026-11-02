@@ -103,7 +103,8 @@ QA環境で以下を確認します
 
 - 補足コメント検討
   - 「補足情報の提示有無の判断基準」に基づいて、PRの変更内容について、補足情報が必要な箇所を洗い出してください
-  - 各箇所について、「補足情報の書き方」に基づいて、文章として整理してください
+  - 呼び出し経路の補足が必要な箇所は、[trace-call スキル](../trace-call/SKILL.md)を呼び出して調査・解説を作成してください
+  - その他の箇所について、「補足情報の書き方」に基づいて、文章として整理してください
   - 行数を指定した補足コメントは、インラインコメントとして投稿してください（詳細は「補足情報の投稿方法」参照）
 
 - 反映内容の確認
@@ -164,39 +165,9 @@ PRのdiffを確認し、呼び出し経路の補足コメントが必要かど�
 各補足箇所について、以下を簡潔に記載：
 
 - **呼び出し元・利用箇所の補足**
-  - `<details><summary>呼び出し経路</summary>...</details>` で囲んで記載する（折りたたみ可能にする）
-  - 呼び出しフローは `- ` を使った階層構造で記載する
-  - 呼び出し階層の起点は、システム外部の操作やイベントなど、最も外側から始めること
-    - その後、Controller層などの、システム内でそれらの受け口となる部分に続けること
-  - 各行に呼び出しのステップを記載し、ネストが深くなるごとに `- ` でインデントを増やす
-  - `OrdersController#create` のような形式で関数呼び出しを記載し、次の行にその関数のGitHubパーマリンクを貼ること
-  - メソッド呼び出しは可能な限りGitHubパーマリンクとして記載する
-    - リンク形式: `https://github.com/{owner}/{repo}/blob/{develop-sha}/{path}#L{start}-L{end}`
-    - `{develop-sha}` は `git rev-parse develop` で取得（PRのrebaseで壊れないように）
-    - `#L{start}-L{end}` で **関数の開始行から終了行まで** の範囲を指定（GitHubがリッチなUIで表示してくれるため）
-    - `[title](url)` 形式ではなく、URLそのもの(`url`)を貼ること
-
-例：
-```
-{メソッドの役割や用途の説明
- 例: ユーザーが商品を購入し、注文確定処理の最後に、購入確認メールを送信する際に呼び出されます}
-{なにか補足情報があれば更に追記}
-
-<details>
-<summary>呼び出し経路</summary>
-
-- ユーザーが商品を購入 (Webhook: POST /api/orders)
-  - OrdersController#create
-    https://github.com/org/repo/blob/abc123.../app/controllers/orders_controller.rb#L10-L25
-    - Service: OrderService#process_order
-      https://github.com/org/repo/blob/abc123.../app/services/order_service.rb#L30-L45
-      - Service: PaymentProcessor#process_payment
-        https://github.com/org/repo/blob/abc123.../app/services/payment_processor.rb#L15-L28
-        - Mailer: NotificationMailer#send_purchase_confirmation
-          https://github.com/org/repo/blob/abc123.../app/mailers/notification_mailer.rb#L42-L58
-
-</details>
-```
+  - [trace-call スキル](../trace-call/SKILL.md)の手順・書式に従う
+  - 変更の理解に必要な状況を選び、実コードとコメントで呼び出し経路を説明する
+  - 作成した解説は、このスキルの「反映内容の確認」「補足情報の投稿方法」に従って確認・投稿する
 
 - **実装方式の選択理由**
   - 「当初 XX を検討しましたが、YY の理由で ZZ を選択しました」
