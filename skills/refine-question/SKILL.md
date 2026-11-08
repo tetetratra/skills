@@ -26,7 +26,7 @@ description: 問いの明確化をするスキル。漠然とした問いをイ�
     - 仮説を立てる
     - フェーズ2へ
   - else
-    - 前提知識・事例を調査する（`explain-technology` や `research-case-study` の活用を推奨）
+    - 前提知識・事例を調査する（`concept-tree` や `research-case-study` の活用を推奨）
     - if イシューの解像度が上がった？
       - イシューを更新する
       - フェーズ1からやり直す
