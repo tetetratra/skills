@@ -1,0 +1,436 @@
+<meta charset="utf-8">
+<title>問題と方針のグラフ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 問題と方針のグラフのひな形。データ（下の <script> の「ここから差し替える」の範囲）だけを書き換えて使う */
+:root {
+  --bg: #f6f7f5; --fg: #1d2420; --muted: #5d6762; --line: #c9d0cb; --panel: #ffffff;
+  --problem-bg: #fbe1da; --problem-bd: #c8553d; --fixed-bg: #dcefe1; --adopt-bg: #dde9f8;
+  --measure-bg: #ffffff; --measure-bd: #6f7d76;
+  --e-reason: #6b7570; --e-measure: #2f6db3; --e-detail: #7a4bb0; --e-harm: #c8553d; --e-premise: #c98a12;
+  --g1: #2f8f8a; --g2: #b06a1a; --g3: #5b5fb0;
+  --label-bg: rgba(246, 247, 245, 0.92);
+  --font-body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141917; --fg: #e3e9e5; --muted: #9aa6a0; --line: #34403a; --panel: #1b221f;
+    --problem-bg: #4a241c; --problem-bd: #e07a62; --fixed-bg: #1d3a28; --adopt-bg: #1e2f45;
+    --measure-bg: #1d2522; --measure-bd: #8d9c95;
+    --e-reason: #9aa6a0; --e-measure: #6ea6e6; --e-detail: #b18ce0; --e-harm: #e07a62; --e-premise: #e5b14a;
+    --g1: #4fbdb6; --g2: #e09a4c; --g3: #9a9ef0; --label-bg: rgba(20, 25, 23, 0.92);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141917; --fg: #e3e9e5; --muted: #9aa6a0; --line: #34403a; --panel: #1b221f;
+  --problem-bg: #4a241c; --problem-bd: #e07a62; --fixed-bg: #1d3a28; --adopt-bg: #1e2f45;
+  --measure-bg: #1d2522; --measure-bd: #8d9c95;
+  --e-reason: #9aa6a0; --e-measure: #6ea6e6; --e-detail: #b18ce0; --e-harm: #e07a62; --e-premise: #e5b14a;
+  --g1: #4fbdb6; --g2: #e09a4c; --g3: #9a9ef0; --label-bg: rgba(20, 25, 23, 0.92);
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); margin: 0; }
+.page {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px;
+}
+h1 { font-size: 1.25rem; margin: 0 0 4px; text-wrap: balance; }
+.lead { color: var(--muted); margin: 0 0 14px; font-size: 0.9rem; max-width: 65ch; line-height: 1.6; }
+.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 10px; background: var(--panel); }
+.toggle button { font: inherit; font-size: 0.85rem; padding: 6px 14px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.toggle button + button { border-left: 1px solid var(--line); }
+.toggle button[aria-pressed="true"] { background: var(--adopt-bg); color: var(--fg); font-weight: 700; }
+.toggle button:focus-visible { outline: 2px solid var(--e-measure); outline-offset: -2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.8rem; color: var(--muted); margin-bottom: 10px; align-items: center; }
+.legend .item { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg { flex: none; }
+.sw { width: 26px; height: 14px; border-radius: 4px; border: 1.5px solid; display: inline-block; }
+.sw.problem { background: var(--measure-bg); border-color: var(--problem-bd); border-radius: 8px; }
+.sw.problem.remain { background: var(--problem-bg); }
+.sw.problem.fixed { background: var(--fixed-bg); }
+.sw.measure { background: var(--measure-bg); border-color: var(--measure-bd); }
+.sw.measure.adopted { background: var(--adopt-bg); }
+.sw.group { border-style: dashed; border-color: var(--g1); background: transparent; }
+/* 図は画面より広いので、横にはみ出す分だけこの枠の中で横に送る（縦は送らない） */
+.scroller { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.stage { position: relative; }
+.canvas { position: absolute; left: 0; top: 0; }
+.canvas svg { position: absolute; left: 0; top: 0; overflow: visible; }
+.node {
+  position: absolute; width: 250px; box-sizing: border-box;
+  padding: 7px 10px 8px; font-size: 12.5px; line-height: 1.5;
+  border: 1.5px solid var(--measure-bd); background: var(--measure-bg); border-radius: 4px;
+}
+.node.problem { background: var(--measure-bg); border-color: var(--problem-bd); border-radius: 12px; }
+.node.problem.remain { background: var(--problem-bg); }
+.node.problem.fixed { background: var(--fixed-bg); }
+.node.adopted { background: var(--adopt-bg); }
+.node .kind { display: block; font-weight: 700; font-size: 11.5px; color: var(--muted); }
+.node.problem .kind { color: var(--problem-bd); }
+.node code, .group-title code { font-family: var(--font-mono); font-size: 0.92em; }
+.group-title { position: absolute; font-size: 11.5px; font-weight: 700; white-space: nowrap; padding: 0 4px; background: var(--panel); }
+.elabel { position: absolute; font-size: 10.5px; padding: 0 3px; border-radius: 3px; background: var(--label-bg); white-space: nowrap; transform: translate(-50%, -50%); font-weight: 700; }
+</style>
+
+<div class="page">
+  <h1 id="title"></h1>
+  <p class="lead" id="lead"></p>
+  <div class="toggle" role="group" aria-label="表示する時点">
+    <button type="button" data-mode="before" aria-pressed="false">意思決定前</button>
+    <button type="button" data-mode="after" aria-pressed="true">意思決定後</button>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="scroller">
+    <div class="stage" id="stage">
+      <div class="canvas" id="canvas">
+        <svg id="svg-groups"></svg>
+        <svg id="svg-edges"></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== ここから差し替える =====
+
+const TITLE = "{{題材}} 問題と方針のグラフ";
+const LEAD = "{{何についての図か。枠が重なっている箇所があれば、その理由も 1 文で}}";
+
+// k: "p" は【問題】、"s" は【方針】。t は内容を 1 文で（HTML 可。コードは <code> で囲む）
+// 並び順が、同じ列の中での上から下の順になる。同じ枠の頂点は続けて並べ、2 つの枠に属する頂点は 2 つの枠の境目に置く
+// c（列）は省略すると辺から自動で決まる
+const NODES = [
+  { id: "P1", k: "p", t: "{{今起きている問題}}" },
+  { id: "P2", k: "p", t: "{{P1 の理由になっている問題}}" },
+  { id: "S1", k: "s", t: "{{方針の候補 1}}" },
+  { id: "S2", k: "s", t: "{{方針の候補 2（現状のまま）}}" },
+  { id: "P3", k: "p", t: "{{S1 を採ると生じる問題}}" },
+  { id: "S3", k: "s", t: "{{P3 への方針}}" },
+];
+
+// 枠：同じ問いの候補。title は問いの名前と選び方（どれか 1 つ／組み合わせてよい）
+const GROUPS = [
+  { id: "Q1", title: "{{問いの名前}}（どれか 1 つ）", m: ["S1", "S2"] },
+];
+
+// [from, to, 種類]。種類は 理由／対応方針／詳細／悪影響／前提 のどれか。to には枠の id も書ける
+const EDGES = [
+  ["P1", "P2", "理由"],
+  ["P2", "Q1", "対応方針"],
+  ["S1", "P3", "悪影響"],
+  ["P3", "S3", "対応方針"],
+];
+
+// 意思決定後の状態。adopted：採用する方針、fixed：結論を採ると治る問題、remain：結論を採っても残る問題
+// 書かなかった頂点は、方針なら「採用しない」、問題なら「結論のもとでは起きない」になる
+const STATUS = {
+  S1: "adopted", S3: "adopted",
+  P1: "fixed", P2: "fixed", P3: "fixed",
+};
+
+// ===== ここまで差し替える =====
+
+const EDGE_TYPES = {
+  "理由": { color: "--e-reason", dash: "", w: 1.6 },
+  "対応方針": { color: "--e-measure", dash: "", w: 1.6 },
+  "詳細": { color: "--e-detail", dash: "", w: 1.6 },
+  "悪影響": { color: "--e-harm", dash: "6 4", w: 1.6 },
+  "前提": { color: "--e-premise", dash: "", w: 3 },
+};
+const GROUP_COLORS = ["--g1", "--g2", "--g3"];
+const COL_W = 250, MARGIN = 24, GAP = 16, PAD_TOP = 30, PAD_BOTTOM = 12;
+
+const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
+const groupById = Object.fromEntries(GROUPS.map(g => [g.id, g]));
+const groupsOf = id => GROUPS.filter(g => g.m.includes(id));
+const membersOf = id => groupById[id] ? groupById[id].m : [id];
+
+// 枠の色と内側の余白。ほかの枠と頂点を共有する枠は、境目が見えるよう余白を広げる
+GROUPS.forEach((g, i) => {
+  g.color = g.color || GROUP_COLORS[i % GROUP_COLORS.length];
+  const shares = GROUPS.slice(0, i).some(o => o.m.some(m => g.m.includes(m)));
+  g.pad = shares ? 24 : 12;
+});
+
+// 列を自動で決める。前提以外の辺の向きに 1 列ずつ進め、同じ枠の頂点は同じ列にそろえる
+// 今起きている問題のうち、理由をそれ以上たどらないもの（対応方針を考える対象）は同じ列にそろえる
+const isCurrentLeafProblem = n => n.k === "p"
+  && !EDGES.some(e => membersOf(e[1]).includes(n.id) && e[2] === "悪影響")
+  && !EDGES.some(e => e[0] === n.id && e[2] === "理由");
+function assignColumns() {
+  for (const n of NODES) n.col = n.c ?? 0;
+  const leaves = NODES.filter(isCurrentLeafProblem);
+  for (let iter = 0; iter < NODES.length * 3; iter++) {
+    let changed = false;
+    const leafCol = Math.max(0, ...leaves.map(n => n.col));
+    for (const n of leaves) if (n.c === undefined && n.col < leafCol) { n.col = leafCol; changed = true; }
+    for (const [a, b, type] of EDGES) {
+      if (type === "前提") continue;
+      const from = Math.max(...membersOf(a).map(id => byId[id].col));
+      for (const id of membersOf(b)) {
+        const n = byId[id];
+        if (n.c === undefined && n.col < from + 1) { n.col = from + 1; changed = true; }
+      }
+    }
+    for (const g of GROUPS) {
+      const max = Math.max(...g.m.map(id => byId[id].col));
+      for (const id of g.m) if (byId[id].c === undefined && byId[id].col < max) { byId[id].col = max; changed = true; }
+    }
+    if (!changed) break;
+  }
+}
+assignColumns();
+const MAX_COL = Math.max(...NODES.map(n => n.col));
+
+// 列の間の幅。間を通る辺が多いところは広げる
+const COL_GAPS = Array.from({ length: MAX_COL }, (_, i) => {
+  const count = EDGES.filter(([a, b]) => {
+    const ca = Math.min(...membersOf(a).map(id => byId[id].col));
+    const cb = Math.min(...membersOf(b).map(id => byId[id].col));
+    return Math.min(ca, cb) <= i && Math.max(ca, cb) >= i + 1;
+  }).length;
+  return Math.max(120, Math.min(260, 120 + (count - 5) * 20));
+});
+const colX = c => MARGIN + 20 + c * COL_W + COL_GAPS.slice(0, c).reduce((a, b) => a + b, 0);
+
+let mode = "after";
+const hasHarmIn = id => EDGES.some(e => e[1] === id && e[2] === "悪影響");
+function statusFor(n) {
+  if (mode === "after") return STATUS[n.id] || "";
+  // 意思決定前は、悪影響の辺が入ってこない問題（今起きている問題）だけを赤にする
+  return n.k === "p" && !hasHarmIn(n.id) ? "remain" : "";
+}
+
+function applyMode() {
+  for (const n of NODES) {
+    const st = statusFor(n);
+    n.el.className = "node" + (n.k === "p" ? " problem" : "") + (st ? " " + st : "");
+  }
+  for (const b of document.querySelectorAll(".toggle button")) b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
+  renderLegend();
+}
+
+function renderLegend() {
+  const parts = mode === "after" ? [
+    `<span class="item"><span class="sw problem remain"></span>【問題】結論を採っても残る（許容すると判断した）</span>`,
+    `<span class="item"><span class="sw problem fixed"></span>【問題】結論を採ると治る</span>`,
+    `<span class="item"><span class="sw problem"></span>【問題】結論のもとでは起きない</span>`,
+    `<span class="item"><span class="sw measure adopted"></span>【方針】採用する</span>`,
+    `<span class="item"><span class="sw measure"></span>【方針】採用しない</span>`,
+  ] : [
+    `<span class="item"><span class="sw problem remain"></span>【問題】今起きている</span>`,
+    `<span class="item"><span class="sw problem"></span>【問題】方針を採ったときに起きうる</span>`,
+    `<span class="item"><span class="sw measure"></span>【方針】候補</span>`,
+  ];
+  parts.push(`<span class="item"><span class="sw group"></span>枠：同じ問いの候補</span>`);
+  for (const [name, s] of Object.entries(EDGE_TYPES)) {
+    parts.push(`<span class="item"><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" stroke="var(${s.color})" stroke-width="${s.w}" stroke-dasharray="${s.dash}"/></svg>${name}</span>`);
+  }
+  document.getElementById("legend").innerHTML = parts.join("");
+}
+
+function gapBetween(a, b) {
+  const entering = groupsOf(b.id).some(g => !g.m.includes(a.id));
+  const leaving = groupsOf(a.id).some(g => !g.m.includes(b.id));
+  let gap = GAP;
+  if (leaving) gap += PAD_BOTTOM;
+  if (entering) gap += PAD_TOP;
+  if (leaving && entering) gap += 10;
+  return gap;
+}
+
+function placeColumn(col, desired) {
+  let prev = null;
+  for (const n of NODES.filter(n => n.col === col)) {
+    // 同じ枠の中は詰めて並べ、枠の中に大きな空白を作らない
+    const sameGroup = prev && groupsOf(n.id).some(g => g.m.includes(prev.id));
+    let y = sameGroup ? 0 : Math.max(MARGIN + PAD_TOP, desired(n) ?? 0);
+    if (prev) y = Math.max(y, prev.y + prev.h + gapBetween(prev, n));
+    n.y = y;
+    prev = n;
+  }
+}
+
+const center = id => {
+  const ys = membersOf(id).map(m => byId[m].y + byId[m].h / 2);
+  return ys.reduce((a, b) => a + b, 0) / ys.length;
+};
+const colOf = id => byId[membersOf(id)[0]].col;
+const targetsOf = id => EDGES.filter(e => e[0] === id).map(e => e[1]);
+const sourcesOf = id => EDGES.filter(e => membersOf(e[1]).includes(id)).map(e => e[0]);
+
+// いちばん頂点の多い列を上から詰めて並べ、その左右の列は、つながる頂点の高さに寄せて並べる
+function layout() {
+  const counts = Array.from({ length: MAX_COL + 1 }, (_, c) => NODES.filter(n => n.col === c).length);
+  const anchor = counts.indexOf(Math.max(...counts));
+  placeColumn(anchor, () => 0);
+  for (let col = anchor + 1; col <= MAX_COL; col++) {
+    placeColumn(col, n => {
+      const srcs = sourcesOf(n.id).filter(s => colOf(s) === col - 1);
+      return srcs.length ? Math.min(...srcs.map(center)) - n.h / 2 : 0;
+    });
+  }
+  for (let col = anchor - 1; col >= 0; col--) {
+    placeColumn(col, n => {
+      const ts = targetsOf(n.id).filter(t => colOf(t) === col + 1);
+      return ts.length ? ts.map(center).reduce((a, b) => a + b, 0) / ts.length - n.h / 2 : 0;
+    });
+  }
+}
+
+function groupRect(g) {
+  const ms = g.m.map(id => byId[id]);
+  return {
+    x1: Math.min(...ms.map(n => n.x)) - g.pad,
+    x2: Math.max(...ms.map(n => n.x + COL_W)) + g.pad,
+    y1: Math.min(...ms.map(n => n.y)) - PAD_TOP + 4,
+    y2: Math.max(...ms.map(n => n.y + n.h)) + PAD_BOTTOM - 2,
+  };
+}
+const boxOf = id => {
+  if (groupById[id]) return groupRect(groupById[id]);
+  const n = byId[id];
+  return { x1: n.x, x2: n.x + COL_W, y1: n.y, y2: n.y + n.h };
+};
+
+const svgEl = (tag, attrs) => {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+};
+
+function draw() {
+  const canvas = document.getElementById("canvas");
+  for (const n of NODES) n.el.style.top = n.y + "px";
+  const W = colX(MAX_COL) + COL_W + MARGIN + 30;
+  const H = Math.max(...NODES.map(n => n.y + n.h)) + MARGIN + 20;
+  canvas.style.width = W + "px"; canvas.style.height = H + "px";
+
+  const sg = document.getElementById("svg-groups");
+  sg.setAttribute("width", W); sg.setAttribute("height", H);
+  sg.innerHTML = "";
+  for (const g of GROUPS) {
+    const r = g.rect = groupRect(g);
+    sg.appendChild(svgEl("rect", {
+      x: r.x1, y: r.y1, width: r.x2 - r.x1, height: r.y2 - r.y1, rx: 10, fill: "none",
+      stroke: `var(${g.color})`, "stroke-width": 1.6, "stroke-dasharray": "7 4",
+    }));
+    const t = document.createElement("div");
+    t.className = "group-title"; t.id = "g-" + g.id;
+    t.innerHTML = g.title;
+    t.style.left = (r.x1 + 10) + "px"; t.style.top = (r.y1 - 8) + "px";
+    t.style.color = `var(${g.color})`;
+    canvas.appendChild(t);
+  }
+
+  const se = document.getElementById("svg-edges");
+  se.setAttribute("width", W); se.setAttribute("height", H);
+  se.innerHTML = "";
+  const defs = svgEl("defs", {});
+  for (const [name, s] of Object.entries(EDGE_TYPES)) {
+    const m = svgEl("marker", { id: "m-" + name, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" });
+    m.innerHTML = `<path d="M0,0 L10,5 L0,10 z" fill="var(${s.color})"/>`;
+    defs.appendChild(m);
+  }
+  se.appendChild(defs);
+
+  for (const [a, b, type] of EDGES) {
+    const s = EDGE_TYPES[type];
+    const A = boxOf(a), B = boxOf(b);
+    let x1, x2, c1x, c2x;
+    const y1 = (A.y1 + A.y2) / 2;
+    const y2 = groupById[b] ? B.y1 + 22 : (B.y1 + B.y2) / 2;
+    if (B.x1 >= A.x2 - 1) { x1 = A.x2; x2 = B.x1; const dx = Math.max(40, (x2 - x1) / 2); c1x = x1 + dx; c2x = x2 - dx; }
+    else if (B.x2 <= A.x1 + 1) { x1 = A.x1; x2 = B.x2; c1x = x1 - 50; c2x = x2 + 50; }
+    else {
+      // 同じ列の中の辺は、右に膨らませて回り込む
+      x1 = A.x2; x2 = B.x2 + (groupsOf(b).length ? Math.max(...groupsOf(b).map(g => g.pad)) : 0);
+      c1x = Math.max(x1, x2) + 70; c2x = c1x;
+    }
+    const path = svgEl("path", {
+      d: `M${x1},${y1} C${c1x},${y1} ${c2x},${y2} ${x2},${y2}`, fill: "none",
+      stroke: `var(${s.color})`, "stroke-width": s.w, "marker-end": `url(#m-${type})`,
+    });
+    if (s.dash) path.setAttribute("stroke-dasharray", s.dash);
+    path.dataset.from = a; path.dataset.to = b;
+    se.appendChild(path);
+    // 前提の辺は列を戻ることが多いので、ほかの辺のラベルと重ならないよう始点寄りに置く
+    const L = path.getTotalLength();
+    const p = path.getPointAtLength(L * (type === "前提" && colOf(a) !== colOf(b) ? 0.25 : 0.5));
+    const lab = document.createElement("div");
+    lab.className = "elabel";
+    lab.textContent = type;
+    lab.style.left = p.x + "px"; lab.style.top = p.y + "px";
+    lab.style.color = `var(${s.color})`;
+    lab.dataset.from = a; lab.dataset.to = b;
+    canvas.appendChild(lab);
+  }
+  const stage = document.getElementById("stage");
+  stage.style.width = W + "px"; stage.style.height = H + "px";
+}
+
+function build() {
+  const canvas = document.getElementById("canvas");
+  canvas.querySelectorAll(".node, .group-title, .elabel").forEach(e => e.remove());
+  for (const n of NODES) {
+    const d = document.createElement("div");
+    d.className = "node" + (n.k === "p" ? " problem" : "");
+    d.id = "n-" + n.id;
+    d.innerHTML = `<span class="kind">${n.k === "p" ? "【問題】" : "【方針】"}</span>${n.t}`;
+    n.x = colX(n.col);
+    d.style.left = n.x + "px";
+    canvas.appendChild(d);
+    n.el = d;
+    n.h = d.offsetHeight;
+  }
+  layout();
+  draw();
+  applyMode();
+}
+
+// 重なりの確認。ブラウザの開発者ツールなどで checkLayout() を呼ぶと、見つかった重なりを返す（すべて空なら問題なし）
+function checkLayout() {
+  const cv = document.getElementById("canvas");
+  const rel = el => { const c = cv.getBoundingClientRect(), r = el.getBoundingClientRect(); return { x1: r.left - c.left, y1: r.top - c.top, x2: r.right - c.left, y2: r.bottom - c.top, id: el.id || (el.dataset.from + ">" + el.dataset.to) }; };
+  const ov = (a, b) => a.x1 < b.x2 && b.x1 < a.x2 && a.y1 < b.y2 && b.y1 < a.y2;
+  const nodes = [...cv.querySelectorAll(".node")].map(rel);
+  const labels = [...cv.querySelectorAll(".elabel")].map(rel);
+  const titles = [...cv.querySelectorAll(".group-title")].map(rel);
+  const out = { nodeNode: [], labelNode: [], labelLabel: [], titleOverlap: [], foreignInGroup: [], edgeThroughNode: [] };
+  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) if (ov(nodes[i], nodes[j])) out.nodeNode.push(nodes[i].id + "|" + nodes[j].id);
+  for (const l of labels) for (const n of nodes) if (ov(l, n)) out.labelNode.push(l.id + "@" + n.id);
+  for (let i = 0; i < labels.length; i++) for (let j = i + 1; j < labels.length; j++) if (ov(labels[i], labels[j])) out.labelLabel.push(labels[i].id + "|" + labels[j].id);
+  for (const t of titles) for (const x of [...nodes, ...labels]) if (ov(t, x)) out.titleOverlap.push(t.id + "@" + x.id);
+  for (const g of GROUPS) for (const n of NODES) {
+    const r = g.rect;
+    if (!g.m.includes(n.id) && n.x < r.x2 && n.x + COL_W > r.x1 && n.y < r.y2 && n.y + n.h > r.y1) out.foreignInGroup.push(g.id + "∋" + n.id);
+  }
+  for (const p of document.querySelectorAll("#svg-edges path")) {
+    const ends = new Set([...membersOf(p.dataset.from), ...membersOf(p.dataset.to)]);
+    const L = p.getTotalLength();
+    for (const n of NODES) {
+      if (ends.has(n.id)) continue;
+      for (let s = 2; s < L - 2; s += 4) {
+        const q = p.getPointAtLength(s);
+        if (q.x > n.x + 2 && q.x < n.x + COL_W - 2 && q.y > n.y + 2 && q.y < n.y + n.h - 2) { out.edgeThroughNode.push(p.dataset.from + ">" + p.dataset.to + " via " + n.id); break; }
+      }
+    }
+  }
+  return out;
+}
+
+document.title = TITLE;
+document.getElementById("title").textContent = TITLE;
+document.getElementById("lead").innerHTML = LEAD;
+for (const b of document.querySelectorAll(".toggle button")) {
+  b.addEventListener("click", () => { mode = b.dataset.mode; applyMode(); });
+}
+renderLegend();
+(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(build);
+</script>
