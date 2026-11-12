@@ -16,6 +16,12 @@ description: ある特定の状況（入力・データ・状態）での処理�
 - 状況が曖昧で値や分岐が決まらない場合は、解説を始める前にユーザーへ確認するか、自分で置いた仮定を「前提」に明記する。
 - コードから値や挙動を確定できない箇所は、推測である旨を明記する。
 
+## 始める前に確認すること
+
+- 対象が画面を持つコード（React・Vue などのコンポーネント）の場合は、解説を始める前に、画面のスクリーンショットを載せるかをユーザーに聞く。
+  - 載せる場合は「スクリーンショット」の節の載せ方に従う。
+  - 載せない場合や、画面を動かせない場合は、スクリーンショットなしで書く。
+
 ## 書き方
 
 ### 文体
@@ -42,6 +48,8 @@ description: ある特定の状況（入力・データ・状態）での処理�
 ### 全体の構造
 
 - 出力は `### 全体像` と `### 詳細` の2つに分け、全体像を先に書く。見出しのレベルは、出力先の文書の構造に合わせて調整してよい。
+- ファイルとして書く場合は、全体像の前に、何をたどる文書か（対象・場面・パスの基準など）を2〜3行で書いてよい。前提の条件はここに書かず、入口のコード断片の「前提」に書く。
+- 依頼された対象が複数の部品や関数のまとまり（あるフォルダの部品すべて、など）で、1つの状況では一部しか通らない場合は、導入の文で、今回たどるのはどれで、ほかはどこで分かれるかを1文で書く。通らない部品は、分かれ目のコード断片のコメントで「置かれない」と示す。
 
 #### 全体像
 
@@ -96,12 +104,53 @@ description: ある特定の状況（入力・データ・状態）での処理�
 - 今回の状況では到達しない後続のコードは、必要なら残したうえで「ここより下には来ない」と示す。
 - コメントの開始位置は、ブロック内でなるべく揃える。行が長い場合は、次の行に字下げして書いてもよい。
 - 説明済みの処理は、見出しやコードを再掲せず、短く参照するだけにする。
+  - 同じ関数を別の場所からもう一度呼ぶ場合は、呼び出し元の項目の子に見出しだけを置き、中身は「〜の項目と同じ処理。今回は〜になる」と1文で書く。全体像にも同じ位置に項目を置く。
 
 ### 非同期の受け渡し
 
 - 呼び出しの入れ子は直接の関数呼び出しを表す。キュー・チャネル・ネットワーク・コールバックの登録などを経由する場合、送信元が受信側の処理を直接呼んだような入れ子にしない。
 - 送信する関数だけで終わらず、受け取る側の実際の関数まで追う。境界では、何を送り、どこで待ち、誰が受け取ってどの処理へ進むかをコードコメントでつなぐ。
 - 共通の受け渡しは一度詳しく説明し、繰り返す箇所は送信元・渡す内容・受信先を明記して参照する。経路を短縮したように見せたり、実在しない関数名を作ったりしない。
+
+### コンポーネント（React・Vue）の呼び出し
+
+- React や Vue では、コンポーネントを描くこと（テンプレートや JSX の中で子のコンポーネントを置くこと）も関数呼び出しとして扱う。普通の関数（イベントで呼ぶメソッド、computed、hooks、store の action や mutation など）の呼び出しも、これまでどおり関数呼び出しとして扱う。
+  - スクリプトの関数だけをたどると、どの画面の部品がどの部品を置き、どこでイベントが起きるかが抜け落ちる。画面の構造が読み取れるよう、コンポーネントの描画を入れ子の骨組みにする。
+- コンポーネントの描画は、`コンポーネント名.template`（Vue）や `コンポーネント名.render`（React の関数コンポーネントの本体）を見出しにする。コード断片には、テンプレートや JSX のうち今回の状況で意味を持つ部分を抜粋する。
+- 見出しの名前は、呼び出し元のコードに書かれている名前にそろえる。
+  - コンポーネントは、親のテンプレートや JSX で使っている名前（`ValueSlot` など）にする。ファイル名と違う場合も、横に書くファイルのパスで対応が分かる。いちばん外側のコンポーネントは、ファイル名から付ける（`branch.vue` なら `Branch`）。
+  - store の関数は `ストアの名前.関数名`（`cart.addItem` など）、ファイルの既定のエクスポート（default export）の関数は、呼び出し元で import している名前にする。
+- computed と store の getter は、同じ規則で扱う。
+- computed のうち、値を決めるだけの短いもの（文字列を数にするだけ、など）は項目にせず、使う側のコード断片に含めて値をコメントで示す。中で別の関数を呼ぶものや、分岐のあるものは項目にする。
+- 描画の項目の子には、次のものを並べる。
+  - そのテンプレートや JSX が置く子のコンポーネントの描画
+  - そのテンプレートや JSX のイベント（クリックや入力の変更など）で呼ぶ関数
+  - そのコンポーネントの watch・computed・ライフサイクル（`created`、`useEffect` など）のうち、今回の状況で動くもの
+- 子の並び順は、今回の状況で動く順（開く → 描く → 操作する → 確定する、など）にする。同じ時点で動くものは、画面の上から下の順にする。
+- watch やライフサイクルも、ひとつの関数として項目にする（例：`Dialog.watch.value`、`Form.created`）。その中で呼ぶ store の関数などは、その項目の子にする。watch から呼ぶ関数を、watch の項目を飛ばして描画の項目の直下に置かない。
+- テンプレートや JSX の断片には、どの欄が何を出すか、どの値で出す・出さないが決まるか、どのイベントでどの関数を呼ぶかを、コメントで書く。今回の状況で置かれない子のコンポーネントにも、置かれないことと理由を書く。
+- 親が子に関数を渡し（props の `onUpdate` など）、子がそれを呼んで親の関数が動く場合は、子の項目の下に親の関数を子項目として並べる。どの props で受け取った関数かをコメントで書く。
+- 状態の変化で画面が描き直されることは、関数呼び出しとして入れ子にしない。どの値が変わり、どの表示が変わるかを、値を書き換えたコードのコメントで書く。
+
+### スクリーンショット
+
+ユーザーがスクリーンショットを載せると答えた場合は、次のように載せる。
+
+- 画面全体ではなく、今回の部品が写っている部分を切り出す。
+- 1枚の画像に複数の部品が写る場合は、部品ごとに色の違う枠で囲み、枠の角に部品の名前（ファイル名など）を描く。どの部分がどの部品かが、画像だけで分かるようにする。
+- 切り出した画像は、文書のある場所から相対パスで参照できる場所に保存する（例：文書と同じ階層の `images/`）。ファイル名には、対象のシステムと部品が分かる名前を付ける。
+- 画像の大きさは `<img src="..." width="400" alt="...">` のようにそろえる。Markdown の `![...]()` は大きさを指定できないので使わない。
+- 画面に見える部品の描画の項目には、それぞれ画像を置く（親の画像を参照する場合を除く）。いちばん外側の画面（一覧など）も省かない。
+- 枠と名前のラベルは、画面の文字や入力欄を隠さないように描く。ラベルは枠の外（枠の上の余白など）に置き、余白がなければ画像の外側に余白を足してから描く。枠が入れ子になる場合は、子のラベルを親の枠の中の余白に置いてよい。
+- 画像は、その部品に焦点を当てた項目の `<details>` の中に置く。冒頭にまとめて並べない。
+  - 基本は描画の項目（`〜.template`・`〜.render`）に置く。操作で画面が変わることを見せたい場合は、その操作で呼ぶ関数の項目に、操作後の画像を置いてよい。
+  - 画像の直前に、何が写っていて、枠のどこが今回の項目の部品かを1〜2文で書く。
+- 1枚の画像で親と子の部品を枠で示せる場合は、その1枚を親の項目に置く。子の項目では、同じ画像を作り直さずに「親の画像の赤枠の部分」のように参照する。子の部品の細部を見せたいときだけ、子の部分を切り出した画像を別に作る。
+- 説明で「ここを押す」と書く操作の場所（マウスを載せたときだけ出るボタンなど）は、見える状態にして撮る。
+- 描いたあとの画像を開いて確かめる。ラベルの文字が欠けていないか、枠が部品の境目と合っているかを見て、ずれていれば描き直す。
+- 画面を動かして状態を変えて撮った場合（比べるために別の選択肢に切り替えた、など）は、保存されたデータを変えないようにし、どの状態の画面かを説明に書く。
+- 確定や保存など、データが変わる操作は画面では行わない。その操作をコードでたどる項目には画像を置かず、「画面では押していないので画像はない」と1文で書く。
+- 文字が読める解像度で撮る。撮った画像が画面より縮められていないか確かめ、縮められる場合は、縮められない大きさの表示に変えて撮る。切り出した画像を拡大して大きく見せない（拡大すると文字がぼやける）。表示の大きさは `width` 属性でそろえる。
 
 ### 強調すべき点
 
@@ -268,6 +317,180 @@ end
       (total * POINT_RATE).floor
     end
     ```
+
+    </details>
+
+  </details>
+
+### Vue の例
+
+架空のアプリの、図書館の予約画面を題材にする。予約の一覧（`ReservationList.vue`）で予約を選ぶと、編集のダイアログ（`ReservationDialog.vue`）が開き、受け取り方法が「配送」なら配送先の入力欄（`DeliveryForm.vue`）を出す。ダイアログは store（`reservation`）を読み書きする。スクリーンショットは載せると答えた場合の例で、画像は架空のもの。
+
+#### 全体像
+
+- ReservationList.template # 予約の一覧を描き、行ごとの編集ボタンと、編集のダイアログを置く
+  - ReservationList.selectReservation # 編集ボタンで選んだ予約を覚え、ダイアログを開く
+  - ReservationDialog.template # 受け取り方法の選択欄を描き、受け取り方法で下の部品を選ぶ
+    - ReservationDialog.watch.value # ダイアログが開いたら、選んだ予約を store に入れる
+      - reservation.setReservation
+    - DeliveryForm.template # 配送先の入力欄を描く
+      - DeliveryForm.onChangePostalCode # 郵便番号が変わったら、store の予約を書き換える
+        - reservation.assignAttributes
+    - ReservationDialog.save # 保存したら、store の予約を一覧に返す
+      - ReservationList.updateReservation # 返ってきた予約で、一覧の予約を置き換える
+
+#### 詳細
+
+- <details>
+  <summary><code>ReservationList.template</code>（<code>src/components/ReservationList.vue</code>）</summary>
+
+  予約の一覧。行の右の鉛筆が編集ボタン。
+
+  <img src="images/library-app_reservation-list.png" width="400" alt="予約の一覧">
+
+  ```pug
+  //- 前提
+  //- - 予約の一覧（reservations）には、本「はじめての園芸」の予約が1件だけある。
+  //- - その予約の受け取り方法（reservation.pickupMethod）は配送（'delivery'）。
+
+  ul
+    //- 予約（reservations）を1件ずつ描く
+    li(v-for="(reservation, i) in reservations" :key="reservation.id")
+      span {{ reservation.bookTitle }}
+      //- 鉛筆の編集ボタン。押すと、行の番号を渡して予約を選ぶ
+      Icon(type="md-create" @click="selectReservation(i)")
+  //- 編集のダイアログ。選んだ予約（selectedReservation）があるときだけ開く。
+  //- 保存したときに呼ぶ関数（on-save）として、一覧の予約を置き換える関数を渡す
+  ReservationDialog(:value="!!selectedReservation" :initial="selectedReservation" :on-save="updateReservation")
+  ```
+
+  - <details>
+    <summary><code>ReservationList.selectReservation(0)</code>（<code>src/components/ReservationList.vue</code>）</summary>
+
+    ```js
+    selectReservation(index) {
+      // 選んだ予約（selectedReservation）を覚える。
+      // テンプレートでダイアログに渡している値なので、ここでダイアログが開く
+      this.selectedReservation = { ...this.reservations[index], index }
+    },
+    ```
+
+    </details>
+
+  - <details>
+    <summary><code>ReservationDialog.template</code>（<code>src/components/ReservationDialog.vue</code>）</summary>
+
+    編集のダイアログ。青で囲んだ受け取り方法の選択欄はダイアログ自身が描き、赤で囲んだ部分は受け取り方法で入れ替わる。
+
+    <img src="images/library-app_reservation-dialog.png" width="400" alt="編集のダイアログ">
+
+    ```pug
+    Modal(v-model="visible")
+      //- 受け取り方法の選択欄。今回は「配送」
+      RadioGroup(v-model="pickupMethod") ...
+      //- 受け取り方法（pickupMethod）が配送なので、配送先の入力欄（DeliveryForm）を置く
+      DeliveryForm(v-if="pickupMethod === 'delivery'")
+      //- 窓口受け取りの案内（CounterNotice）。今回は配送なので置かれない
+      CounterNotice(v-else)
+      //- 保存ボタン。押すと save を呼ぶ
+      Button(@click="save") 保存
+    ```
+
+    - <details>
+      <summary><code>ReservationDialog.watch.value</code>（<code>src/components/ReservationDialog.vue</code>）</summary>
+
+      ```js
+      watch: {
+        // 一覧で予約を選んだので、ダイアログを開く値（value）が true になった
+        value(val) {
+          // 開いたときなので通る
+          if (val) {
+            // 選んだ予約（initial）を store に入れる
+            this.setReservation(this.initial)
+          }
+        },
+      },
+      ```
+
+      - <details>
+        <summary><code>reservation.setReservation</code>（<code>src/stores/reservation.js</code>）</summary>
+
+        ```js
+        setReservation(state, reservation) {
+          // 選んだ予約を、store の予約（state.reservation）にする。
+          // 受け取り方法（pickupMethod）は配送なので、ダイアログは DeliveryForm を置く
+          state.reservation = { ...reservation }
+        },
+        ```
+
+        </details>
+
+      </details>
+
+    - <details>
+      <summary><code>DeliveryForm.template</code>（<code>src/components/DeliveryForm.vue</code>）</summary>
+
+      画面では、編集のダイアログの画像の赤枠の部分。
+
+      ```pug
+      //- 郵便番号の入力欄。変えると onChangePostalCode を呼ぶ
+      Input(:model-value="reservation.postalCode" @on-change="onChangePostalCode")
+      //- 住所の入力欄
+      Input(:model-value="reservation.address" ...)
+      ```
+
+      - <details>
+        <summary><code>DeliveryForm.onChangePostalCode('100-0001')</code>（<code>src/components/DeliveryForm.vue</code>）</summary>
+
+        ```js
+        onChangePostalCode(postalCode) {
+          // 入力された郵便番号（postalCode）で、store の予約を書き換える
+          this.assignAttributes({ postalCode })
+        },
+        ```
+
+        - <details>
+          <summary><code>reservation.assignAttributes</code>（<code>src/stores/reservation.js</code>）</summary>
+
+          ```js
+          // store の予約（state.reservation）に、渡した値を書き込む。
+          // 郵便番号（postalCode）が '100-0001' になり、入力欄の表示もそれに変わる
+          assignAttributes(state, attributes) {
+            Object.assign(state.reservation, attributes)
+          },
+          ```
+
+          </details>
+
+        </details>
+
+      </details>
+
+    - <details>
+      <summary><code>ReservationDialog.save</code>（<code>src/components/ReservationDialog.vue</code>）</summary>
+
+      ```js
+      save() {
+        // store の予約を、一覧から受け取った関数（onSave）に返す
+        this.onSave(this.reservation)
+      },
+      ```
+
+      - <details>
+        <summary><code>ReservationList.updateReservation</code>（<code>src/components/ReservationList.vue</code>）</summary>
+
+        ```js
+        updateReservation(reservation) {
+          // 選んだときに覚えた行の番号（index）の予約を、返ってきた予約で置き換える
+          this.reservations[this.selectedReservation.index] = reservation
+          // 選んだ予約を消すので、ダイアログが閉じる
+          this.selectedReservation = null
+        },
+        ```
+
+        </details>
+
+      </details>
 
     </details>
 
