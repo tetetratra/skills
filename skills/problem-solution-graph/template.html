@@ -382,7 +382,7 @@ function build() {
     const d = document.createElement("div");
     d.className = "node" + (n.k === "p" ? " problem" : "");
     d.id = "n-" + n.id;
-    d.innerHTML = `<span class="kind">${n.k === "p" ? "【問題】" : "【方針】"}</span>${n.t}`;
+    d.innerHTML = `<span class="kind">【${n.k === "p" ? "問題" : "方針"} ${n.id}】</span>${n.t}`;
     n.x = colX(n.col);
     d.style.left = n.x + "px";
     canvas.appendChild(d);
