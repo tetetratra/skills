@@ -69,6 +69,12 @@ description: ある特定の状況（入力・データ・状態）での処理�
   - 呼び出しのあとの処理は、呼び出し元のメソッドのコード断片にあらかじめ含めておく。
   - 子項目でたどる呼び出しの行や、その戻り値に依存する行には、`# => 値` を書かない。読み手がまだ子項目を読んでいない時点で値を示すと、かえって分かりにくくなるため。
   - 関数呼び出しの行には、なにをする呼び出しなのかを短いコメントで書く。書く位置は、呼び出しコードの1行上か、その行末のどちらかにする（例：`# 支払額を求める`）。
+  - 項目でたどる呼び出しには、そのコメントの最後に、たどる先の項目の名前を括弧で添える。コードを読んでいる途中で、その呼び出しの中身をどの項目で説明しているかが分かるようにするため。
+    - 子項目でたどる場合は `（↓ 項目の名前）`、非同期の受け渡しでトップレベルの別の項目へ進む場合は `（→ 項目の名前）` と書く（例：`# 付与ポイントの計算（PointService.earn）に、支払額（total）を渡す。（↓ PointService.earn）`）。矢印を分けるのは、→ の先を子項目の中で探さずに済むようにするため。
+    - 名前は、項目の行の関数名と同じにし、引数は書かない。子項目が複数あっても、どれを読めばよいか分かるようにする。
+    - コメントが複数行にわたる場合は、呼び出しのすぐ上の行の末尾に添える。
+    - 項目にしない呼び出し（追わない関数や、別の文書でたどる処理）には添えない。括弧があるかないかで、その呼び出しを追うかどうかが分かる。
+    - コンポーネントを置く行にも添える。置いたコンポーネントが `created` と描画など複数の項目になる場合は、読点で区切って並べる（例：`（↓ DeliveryForm.created、DeliveryForm.template）`）。
 
 ### コード断片へのコメント
 
@@ -89,7 +95,7 @@ description: ある特定の状況（入力・データ・状態）での処理�
 ### 非同期の受け渡し
 
 - 呼び出しの入れ子は直接の関数呼び出しを表す。キュー・チャネル・ネットワーク・コールバックの登録などを経由する場合、送信元が受信側の処理を直接呼んだような入れ子にしない。
-- 送信する関数だけで終わらず、受け取る側の実際の関数まで追う。境界では、何を送り、どこで待ち、誰が受け取ってどの処理へ進むかをコードコメントでつなぐ。
+- 送信する関数だけで終わらず、受け取る側の実際の関数まで追う。境界では、何を送り、どこで待ち、誰が受け取ってどの処理へ進むかをコードコメントでつなぐ。送る行のコメントの最後には、受け取る側の項目の名前を `（→ 項目の名前）` の形で添える。
 - 共通の受け渡しは一度詳しく説明し、繰り返す箇所は送信元・渡す内容・受信先を明記して参照する。経路を短縮したように見せたり、実在しない関数名を作ったりしない。
 
 ### コンポーネント（React・Vue）の呼び出し
@@ -238,9 +244,9 @@ end
     end
     ...
     # 支払額の計算（PriceCalculator.calculate）に、カートとクーポンを渡す。
-    # クーポン（coupon_code）は未入力なので、nilのまま渡す。
+    # クーポン（coupon_code）は未入力なので、nilのまま渡す。（↓ PriceCalculator.calculate）
     total = PriceCalculator.new(user).calculate(cart, coupon_code)
-    # 付与ポイントの計算（PointService.earn）に、支払額（total）を渡す。
+    # 付与ポイントの計算（PointService.earn）に、支払額（total）を渡す。（↓ PointService.earn）
     point = PointService.new(user).earn(total)
     ...
     # 計算した支払額（total）と付与ポイント（point）を使って注文を保存する（Order.create!）。
@@ -260,7 +266,7 @@ end
       # 今回は単価500円（item.product.price）で注文数3冊（item.quantity）なので、小計は1,500円（subtotal）となる。
       subtotal = cart.items.sum { |item| item.product.price * item.quantity }
 
-      # 割引額の計算（DiscountResolver.resolve）に、小計とクーポンを渡す。
+      # 割引額の計算（DiscountResolver.resolve）に、小計とクーポンを渡す。（↓ DiscountResolver.resolve）
       discount = DiscountResolver.new(@user).resolve(subtotal, coupon_code)
       ...
       # 小計（subtotal）から割引額（discount）を引き、支払額を求める。
@@ -349,7 +355,7 @@ end
   Modal(v-model="visible")
     //- 受け取り方法の選択欄。今は「配送」が選ばれている
     RadioGroup(v-model="pickupMethod") ...
-    //- 受け取り方法（pickupMethod）が配送なので、配送先の入力欄（DeliveryForm）を置く
+    //- 受け取り方法（pickupMethod）が配送なので、配送先の入力欄（DeliveryForm）を置く（↓ DeliveryForm.created、DeliveryForm.template）
     DeliveryForm(v-if="pickupMethod === 'delivery'")
     //- 窓口受け取りの案内（CounterNotice）。配送なので置かれない
     CounterNotice(v-else)
@@ -385,9 +391,9 @@ end
     Input(:model-value="reservation.postalCode" @on-change="onChangePostalCode")
     //- 住所の入力欄。住所が空なので、何も出ない
     Input(:model-value="reservation.address" ...)
-    //- 離島への配送の注意。離島ではない（isRemoteArea が false）ので出ない
+    //- 離島への配送の注意。離島ではない（isRemoteArea が false）ので出ない（↓ reservation.isRemoteArea）
     p.warning(v-if="isRemoteArea") ...
-    //- 配送料の表示文（shippingFeeText）。「配送料：無料」が出る
+    //- 配送料の表示文（shippingFeeText）。「配送料：無料」が出る（↓ DeliveryForm.shippingFeeText）
     p {{ shippingFeeText }}
     ```
 
